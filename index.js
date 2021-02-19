@@ -11,7 +11,7 @@ const menu = require('./menu');
 const cacheRates = require('./utils/cacheRates');
 
 unhandled();
-debug();
+debug({ showDevTools: false });
 contextMenu();
 
 // Note: Must match `build.appId` in package.json
@@ -36,8 +36,8 @@ const createMainWindow = async () => {
 		title: app.getName(),
 		center: true,
 		show: false,
-		width: 350,
-		height: 350,
+		width: 700,
+		height: 700,
 		frame: false
 	});
 

@@ -16,11 +16,26 @@ const textForOperators = {
 	by: '/',
 	'multiplied by': '*',
 	into: '*',
-	cross: '*'
+	cross: '*',
+	'%': '/100'
 };
 
 /** @const {string} */
 const currencyUnits = Object.keys(coreConv.currencyUnits).join('|');
+
+const lengthUnits = Object.keys(coreConv.lengthUnits).join('|');
+
+const weightUnits = Object.keys(coreConv.weightUnits).join('|');
+
+const timeUnits = Object.keys(coreConv.timeUnits).join('|');
+
+const tempratureUnits = coreConv.temperatureUnits.join('|');
+
+const numberUnits = Object.keys(coreConv.numberUnits).join('|');
+
+const scientificUnits1 = Object.keys(coreConv.scientificUnits1).join('|');
+
+const scientificUnits2 = Object.keys(coreConv.scientificUnits2).join('|');
 
 /** @const {object} */
 const commentRegExp = new RegExp(/^(\s*)#+(.*)/, 'm');
@@ -32,14 +47,47 @@ const commentRegExp = new RegExp(/^(\s*)#+(.*)/, 'm');
  * @private
  * @returns {object}
  */
+
+const generateRegExpForMaths1 = units =>
+	new RegExp(`^(${units})\\s+([-|+])?\\d+(.\\d+)?`, 'm');
+
+const generateRegExpForMaths2 = units =>
+	new RegExp(`^(${units})\\s+([-|+])?\\d+(.\\d+)?\\s+\\d*(.\\d+)?`, 'm');
+
 const generateRegExpForUnits = units =>
 	new RegExp(
-		`^(\\d+\\.?\\d*?\\s*)(${units})\\s*(to|TO)\\s*(${units})\\s*$`,
+		`^(([0-9a-zA-Z]+)\\s*)+\\s*(${units})\\s*(to|TO|tO|To)\\s*(${units})`,
+		'm'
+	);
+
+const generateRegExpForUnits2 = units =>
+	new RegExp(
+		`^(${units})\\s*(in|IN|iN|In)\\s*(([0-9a-zA-Z]+)\\s*)+\\s*(${units})`,
 		'm'
 	);
 
 /** @const {object} */
 const currencyRegExp = generateRegExpForUnits(currencyUnits);
+const currencyRegExp2 = generateRegExpForUnits2(currencyUnits);
+
+const lengthRegExp = generateRegExpForUnits(lengthUnits);
+const lengthRegExp2 = generateRegExpForUnits2(lengthUnits);
+
+const weightRegExp = generateRegExpForUnits(weightUnits);
+const weightRegExp2 = generateRegExpForUnits2(weightUnits);
+
+const tempratureRegExp = generateRegExpForUnits(tempratureUnits);
+const tempratureRegExp2 = generateRegExpForUnits2(tempratureUnits);
+
+const numberRegExp = generateRegExpForUnits(numberUnits);
+const numberRegExp2 = generateRegExpForUnits2(numberUnits);
+
+const timeRegExp = generateRegExpForUnits(timeUnits);
+const timeRegExp2 = generateRegExpForUnits2(timeUnits);
+
+const scientificRegExp1 = generateRegExpForMaths1(scientificUnits1);
+const scientificRegExp2 = generateRegExpForMaths2(scientificUnits2);
+console.log(scientificRegExp2);
 
 /**
  * This function filters the given value with
@@ -51,7 +99,13 @@ const currencyRegExp = generateRegExpForUnits(currencyUnits);
  * @returns {object}
  */
 const filterValues = v =>
-	v !== null && v !== undefined && v !== '' && v !== 'to' && v !== 'TO';
+	v !== null &&
+	v !== undefined &&
+	v !== '' &&
+	v !== 'to' &&
+	v !== 'in' &&
+	v !== 'IN' &&
+	v !== 'TO';
 
 /**
  * This function parses the given expression with the provided regExp and passes the values to the core modules
@@ -61,11 +115,53 @@ const filterValues = v =>
  * @returns {number}
  */
 const parseExp = (inp, type, unit) => {
-	inp = inp.split(type).filter(filterValues);
-	const result = coreConv.convert(unit, ...inp);
+	inp = inp.split(' ').filter(v => filterValues(v));
+
+	const value = inp.slice(0, inp.length - 2).join(' ');
+
+	const result = coreConv.convert(
+		unit,
+		value,
+		inp[inp.length - 2],
+		inp[inp.length - 1]
+	);
+
 	return result;
 };
 
+const parseExp2 = (inp, type, unit) => {
+	inp = inp.split(' ').filter(v => filterValues(v));
+	console.log(inp);
+	const value = inp.slice(1, inp.length - 1).join(' ');
+	console.log(
+		'value',
+		value,
+		'oldUnit',
+		inp[0],
+		'newUnit',
+		inp[inp.length - 1]
+	);
+	const result = coreConv.convert(unit, value, inp[inp.length - 1], inp[0]);
+	return result;
+};
+
+const parsescientific1 = (inp, type, unit) => {
+	inp = inp.split(' ').filter(v => filterValues(v));
+	const result = coreConv.convert(unit, inp[inp.length - 1], null, inp[0]);
+	return result;
+};
+
+const parsescientific2 = (inp, type, unit) => {
+	inp = inp.split(' ').filter(v => filterValues(v));
+	console.log('input for scientific2', inp);
+	const result = coreConv.convert(
+		unit,
+		inp[inp.length - 2],
+		inp[0],
+		inp[inp.length - 1]
+	);
+	return result;
+};
 /**
  * This is main function which parses and sends the values to the core modules
  * @param {string} exp - provides user input, that can be an equation or conversion. But not both, yet.
@@ -81,12 +177,60 @@ const evaluate = exp => {
 
 	// Replaces the text alternatives for operators
 	Object.keys(textForOperators).forEach(operator => {
-		const operatorRegExp = new RegExp(`\\d+\s*${operator}\\s*`, 'm');
-		exp = exp.replace(operatorRegExp, textForOperators[operator]);
+		const regExp = new RegExp(`\s*${operator}\s*`, 'gi');
+		exp = exp.replace(regExp, textForOperators[operator]);
 	});
 
 	if (currencyRegExp.test(exp.toUpperCase())) {
 		return parseExp(exp.toUpperCase(), currencyRegExp, 'c');
+	}
+	if (currencyRegExp2.test(exp.toUpperCase())) {
+		return parseExp2(exp.toUpperCase(), curreencyRegExp2, 'c');
+	}
+
+	if (lengthRegExp.test(exp.toLowerCase())) {
+		return parseExp(exp.toLowerCase(), lengthRegExp, 'l');
+	}
+	if (lengthRegExp2.test(exp.toLowerCase())) {
+		return parseExp2(exp.toLowerCase(), lengthRegExp2, 'l');
+	}
+
+	if (weightRegExp.test(exp.toLowerCase())) {
+		return parseExp(exp.toLowerCase(), weightRegExp, 'w');
+	}
+	if (weightRegExp2.test(exp.toLowerCase())) {
+		return parseExp2(exp.toLowerCase(), weightRegExp2, 'w');
+	}
+
+	if (tempratureRegExp.test(exp.toLowerCase())) {
+		return parseExp(exp.toLowerCase(), tempratureRegExp, 't');
+	}
+	if (tempratureRegExp2.test(exp.toLowerCase())) {
+		return parseExp2(exp.toLowerCase(), tempratureRegExp2, 't');
+	}
+
+	if (numberRegExp.test(exp.toLowerCase())) {
+		return parseExp(exp.toLowerCase(), numberRegExp, 'n');
+	}
+	if (numberRegExp2.test(exp.toLowerCase())) {
+		return parseExp2(exp.toLowerCase(), numberRegExp2, 'n');
+	}
+
+	if (timeRegExp.test(exp.toLowerCase())) {
+		return parseExp(exp.toLowerCase(), timeRegExp, 'tm');
+	}
+
+	if (timeRegExp2.test(exp.toLowerCase())) {
+		return parseExp2(exp.toLowerCase(), timeRegExp2, 'tm');
+	}
+
+	if (scientificRegExp2.test(exp.toLowerCase())) {
+		console.log('here 2');
+		return parsescientific2(exp.toLowerCase(), scientificRegExp2, 's2');
+	}
+
+	if (scientificRegExp1.test(exp.toLowerCase())) {
+		return parsescientific1(exp.toLowerCase(), scientificRegExp1, 's1');
 	}
 
 	return mathJs.evaluate(exp);
@@ -97,8 +241,8 @@ const main = exp => {
 		return evaluate(exp)
 			? typeof evaluate(exp) !== 'function' // To filter function printing
 				? evaluate(exp)
-				: ''
-			: '';
+				: 0
+			: 0;
 	} catch (error) {
 		return '';
 	}

@@ -2,7 +2,7 @@
 
 const { remote } = require('electron');
 const main = require('../utils/main');
-
+const copy = require('copy-to-clipboard');
 // By default OS theme
 // user theme has high precedence
 // os theme and user theme applied then USer theme
@@ -58,6 +58,9 @@ const outputContainer = document.querySelectorAll('.app__output')[0];
 /** @type  {Object} */
 const totalContainer = document.querySelector('#app__total__output');
 
+/** @type {button} */
+const copyButton = document.querySelector('#app__total__copy');
+
 /** @type {Array} */
 let equationsCollected = [];
 
@@ -102,98 +105,127 @@ function getSelection(textbox) {
 }
 
 function getInputSelection(el) {
-    let start = 0, end = 0, normalizedValue, range,
-        textInputRange, len, endRange;
+	let start = 0,
+		end = 0,
+		normalizedValue,
+		range,
+		textInputRange,
+		len,
+		endRange;
 
-    if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
-        start = el.selectionStart;
-        end = el.selectionEnd;
-    } else {
-        range = document.selection.createRange();
+	if (
+		typeof el.selectionStart == 'number' &&
+		typeof el.selectionEnd == 'number'
+	) {
+		start = el.selectionStart;
+		end = el.selectionEnd;
+	} else {
+		range = document.selection.createRange();
 
-        if (range && range.parentElement() == el) {
-            len = el.value.length;
-            normalizedValue = el.value.replace(/\r\n/g, "\n");
+		if (range && range.parentElement() == el) {
+			len = el.value.length;
+			normalizedValue = el.value.replace(/\r\n/g, '\n');
 
-            // Create a working TextRange that lives only in the input
-            textInputRange = el.createTextRange();
-            textInputRange.moveToBookmark(range.getBookmark());
+			// Create a working TextRange that lives only in the input
+			textInputRange = el.createTextRange();
+			textInputRange.moveToBookmark(range.getBookmark());
 
-            // Check if the start and end of the selection are at the very end
-            // of the input, since moveStart/moveEnd doesn't return what we want
-            // in those cases
-            endRange = el.createTextRange();
-            endRange.collapse(false);
+			// Check if the start and end of the selection are at the very end
+			// of the input, since moveStart/moveEnd doesn't return what we want
+			// in those cases
+			endRange = el.createTextRange();
+			endRange.collapse(false);
 
-            if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
-                start = end = len;
-            } else {
-                start = -textInputRange.moveStart("character", -len);
-                start += normalizedValue.slice(0, start).split("\n").length - 1;
+			if (textInputRange.compareEndPoints('StartToEnd', endRange) > -1) {
+				start = end = len;
+			} else {
+				start = -textInputRange.moveStart('character', -len);
+				start += normalizedValue.slice(0, start).split('\n').length - 1;
 
-                if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
-                    end = len;
-                } else {
-                    end = -textInputRange.moveEnd("character", -len);
-                    end += normalizedValue.slice(0, end).split("\n").length - 1;
-                }
-            }
-        }
-    }
+				if (
+					textInputRange.compareEndPoints('EndToEnd', endRange) > -1
+				) {
+					end = len;
+				} else {
+					end = -textInputRange.moveEnd('character', -len);
+					end += normalizedValue.slice(0, end).split('\n').length - 1;
+				}
+			}
+		}
+	}
 
-    return {
-        start: start,
-        end: end
-    };
+	return {
+		start: start,
+		end: end
+	};
 }
 
 function replaceSelectedText(keyCode, secondKeyCode = 0, reverse = false) {
-    let selection = getInputSelection(inputContainer), val = inputContainer.value;
-		if(secondKeyCode){
-			if(reverse){
-				inputContainer.value = val.slice(0, selection.start) + keyCode + val.slice(selection.start,selection.end) + secondKeyCode + val.slice(selection.end);
-			}
-			else{
-				inputContainer.value = val.slice(0, selection.start) + secondKeyCode + val.slice(selection.start,selection.end) + keyCode + val.slice(selection.end);
-			}
+	let selection = getInputSelection(inputContainer),
+		val = inputContainer.value;
+	if (secondKeyCode) {
+		if (reverse) {
+			inputContainer.value =
+				val.slice(0, selection.start) +
+				keyCode +
+				val.slice(selection.start, selection.end) +
+				secondKeyCode +
+				val.slice(selection.end);
+		} else {
+			inputContainer.value =
+				val.slice(0, selection.start) +
+				secondKeyCode +
+				val.slice(selection.start, selection.end) +
+				keyCode +
+				val.slice(selection.end);
 		}
-		else{
-			inputContainer.value = val.slice(0, selection.start) + keyCode + val.slice(selection.start,selection.end) + keyCode + val.slice(selection.end);
-		}
+	} else {
+		inputContainer.value =
+			val.slice(0, selection.start) +
+			keyCode +
+			val.slice(selection.start, selection.end) +
+			keyCode +
+			val.slice(selection.end);
+	}
 }
 
 function getKeyByValue(object, value) {
-  return Object.keys(object).find(key => object[key] === value);
+	return Object.keys(object).find(key => object[key] === value);
 }
 
 inputContainer.addEventListener('keydown', e => {
 	const quotesObj = {
-		"\"":true,
-		"\'":true
-	}
+		'"': true,
+		"'": true
+	};
 	const bracketsObj = {
-		"(":1,
-		")":2,
-		"[":3,
-		"]":4,
-		"{":5,
-		"}":6
-		};
+		'(': 1,
+		')': 2,
+		'[': 3,
+		']': 4,
+		'{': 5,
+		'}': 6
+	};
 
-	if(getSelection(inputContainer) && quotesObj[e.key]){
+	if (getSelection(inputContainer) && quotesObj[e.key]) {
 		e.preventDefault();
-		replaceSelectedText(e.key)
-	}
-	else if(getSelection(inputContainer) && bracketsObj[e.key]){
+		replaceSelectedText(e.key);
+	} else if (getSelection(inputContainer) && bracketsObj[e.key]) {
 		e.preventDefault();
-		if(bracketsObj[e.key] % 2){
-			replaceSelectedText(e.key, getKeyByValue(bracketsObj, bracketsObj[e.key]+1), true)
-		}
-		else{
-			replaceSelectedText(e.key, getKeyByValue(bracketsObj, bracketsObj[e.key]-1))
+		if (bracketsObj[e.key] % 2) {
+			replaceSelectedText(
+				e.key,
+				getKeyByValue(bracketsObj, bracketsObj[e.key] + 1),
+				true
+			);
+		} else {
+			replaceSelectedText(
+				e.key,
+				getKeyByValue(bracketsObj, bracketsObj[e.key] - 1)
+			);
 		}
 	}
-})
+});
 
 inputContainer.addEventListener('keyup', e => {
 	equationsCollected = e.target.value.split('\n');
@@ -231,7 +263,7 @@ function evaluate(arr) {
 
 		outputContainer.append(result);
 		displayTotal += value;
-		totalContainer.innerText = displayTotal;
+		totalContainer.innerText = `${displayTotal}`;
 	});
 }
 
@@ -302,7 +334,7 @@ const appPopup = document.querySelectorAll('.modal')[0];
 			.querySelector('#font-size-switcher')
 			.addEventListener('change', e => {
 				const fontSize = e.target.value;
-				document.querySelector('html').style.fontSize = fontSize+'px';
+				document.querySelector('html').style.fontSize = fontSize + 'px';
 				window.localStorage.fontSize = fontSize;
 			});
 	}
@@ -318,7 +350,7 @@ const appPopup = document.querySelectorAll('.modal')[0];
 			const decimalPoint = window.localStorage.decimalPoint || 4;
 
 			const fontSize = window.localStorage.fontSize || 16;
-			document.querySelector('html').style.fontSize = fontSize+'px'
+			document.querySelector('html').style.fontSize = fontSize + 'px';
 
 			if (userTheme === 'auto') {
 				document.documentElement.setAttribute(
@@ -425,5 +457,13 @@ const startDragging = event => {
 		mouseDragHandler
 	);
 };
+
+copyButton.addEventListener('click', () => {
+	copy(totalContainer.innerText);
+	copyButton.innerText = 'done';
+	copyButton.addEventListener('mouseleave', () => {
+		copyButton.innerText = 'copy';
+	});
+});
 
 getHandleElement().addEventListener('mousedown', startDragging);

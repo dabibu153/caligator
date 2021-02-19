@@ -3,6 +3,8 @@
 const config = require('../store');
 const money = require('../lib/money');
 const defaultRates = require('./defaultRates');
+const wordToNum = require('word-to-numbers');
+const mathJs = require('mathjs');
 
 // The supported weight units
 /*
@@ -35,7 +37,7 @@ const lengthUnits = {
 	nm: 1000000000,
 	mm: 1000,
 	cm: 100,
-	in: 39.37008,
+	inch: 39.37008,
 	dm: 10,
 	ft: 3.28084,
 	yd: 1.093613,
@@ -54,6 +56,80 @@ const temperatureUnits = ['c', 'f', 'k'];
 /**
  * get cached currency rates
  */
+
+/**
+ * supported hex format list
+ */
+
+const numberUnits = {
+	bin: 2,
+	binary: 2,
+	dec: 10,
+	decimal: 10,
+	oct: 8,
+	octal: 8,
+	hex: 16,
+	hexadecimal: 16
+};
+
+const scientificUnits1 = {
+	root: 'nthRoot',
+	sqrt: 'sqrt',
+	squareroot: 'sqrt',
+	cbrt: 'cbrt',
+	cuberoot: 'cbrt',
+	abs: 'abs',
+	absolute: 'abs',
+	fact: 'factorial',
+	factorial: 'factorial',
+	round: 'round',
+	ceil: 'ceil',
+	ceiling: 'ceil',
+	floor: 'floor',
+	sin: 'sin',
+	sine: 'sin',
+	cos: 'cos',
+	cosine: 'cos',
+	tan: 'tan',
+	tangent: 'tan',
+	csc: 'csc',
+	cosec: 'csc',
+	cosecant: 'csc',
+	cot: 'cot',
+	cotangent: 'cot',
+	sec: 'sec',
+	secant: 'sec'
+};
+
+const scientificUnits2 = {
+	root: 'nthRoot',
+	log: 'log',
+	round: 'round',
+	ceil: 'ceil',
+	floor: 'floor'
+};
+
+const timeUnits = {
+	seconds: 1,
+	second: 1,
+	sec: 1,
+	minutes: 60,
+	minute: 60,
+	min: 60,
+	hours: 3600,
+	hour: 3600,
+	hr: 3600,
+	day: 86400,
+	days: 86400,
+	week: 604800,
+	weeks: 604800,
+	month: 2592000,
+	months: 2592000,
+	mon: 2592000,
+	year: 31536000,
+	years: 31536000
+};
+
 const currencyUnits = config.has('rates') ? config.get('rates') : defaultRates;
 
 /**
@@ -73,17 +149,35 @@ money.fx.rates = currencyUnits;
 const convert = (mode, value, oldUnit, newUnit) => {
 	switch (mode) {
 		case 'w':
+			console.log('weight');
 			return convertWeight(value, oldUnit, newUnit);
 		case 'l':
+			console.log('length');
 			return convertLength(value, oldUnit, newUnit);
 		case 't':
+			console.log('temp');
 			return convertTemperature(value, oldUnit, newUnit);
 		case 'c':
+			console.log('currency');
 			return convertCurrency(value, oldUnit, newUnit);
 		case 'r':
+			console.log('r');
 			return convertRatio(value, oldUnit, newUnit);
 		case 'p':
+			console.log('p');
 			return convertPercent(value, oldUnit, newUnit);
+		case 'n':
+			console.log('number');
+			return convertNumber(value, oldUnit, newUnit);
+		case 'tm':
+			console.log('time');
+			return convertTime(value, oldUnit, newUnit);
+		case 's2':
+			console.log('scientific2');
+			return convertScientific2(value, oldUnit, newUnit);
+		case 's1':
+			console.log('scientific1');
+			return convertScientific1(value, oldUnit, newUnit);
 	}
 };
 
@@ -110,7 +204,6 @@ const convertPercent = (percent, _, ofValue) => {
 	return (percent / 100) * ofValue;
 };
 
-
 /**
  * This is a function to perform weight conversion
  * @param {Number} value - Value on which conversion is to be performed
@@ -119,8 +212,12 @@ const convertPercent = (percent, _, ofValue) => {
  * @returns {Number} - result after performing conversion
  */
 const convertWeight = (value, oldUnit, newUnit) => {
-	if (oldUnit === newUnit) return value;
-	return (value / weightUnits[oldUnit]) * weightUnits[newUnit];
+	value = wordToNum(value);
+	if (oldUnit === newUnit) {
+		return value;
+	} else {
+		return (value / weightUnits[oldUnit]) * weightUnits[newUnit];
+	}
 };
 
 /**
@@ -131,8 +228,12 @@ const convertWeight = (value, oldUnit, newUnit) => {
  * @returns {Number} - result after performing conversion
  */
 const convertLength = (value, oldUnit, newUnit) => {
-	if (oldUnit === newUnit) return value;
-	return (value / lengthUnits[oldUnit]) * lengthUnits[newUnit];
+	value = wordToNum(value);
+	if (oldUnit === newUnit) {
+		return value;
+	} else {
+		return (value / lengthUnits[oldUnit]) * lengthUnits[newUnit];
+	}
 };
 
 /**
@@ -143,7 +244,7 @@ const convertLength = (value, oldUnit, newUnit) => {
  * @returns {Number} - result after performing conversion
  */
 const convertTemperature = (value, oldUnit, newUnit) => {
-	value = Number(value);
+	value = wordToNum(value);
 
 	if (oldUnit === newUnit) {
 		return value;
@@ -170,16 +271,46 @@ const convertTemperature = (value, oldUnit, newUnit) => {
  * @returns {Number} - result after performing conversion
  */
 const convertCurrency = (value, oldUnit, newUnit) => {
+	value = wordToNum(value);
 	if (oldUnit === newUnit) return value;
 	return money.fx
 		.convert(Number(value), { from: oldUnit, to: newUnit })
 		.toFixed(2);
 };
 
+const convertNumber = (value, oldUnit, newUnit) => {
+	console.log(value, oldUnit, newUnit);
+	return parseInt(value, numberUnits[oldUnit])
+		.toString(numberUnits[newUnit])
+		.toUpperCase();
+};
+
+const convertTime = (value, oldUnit, newUnit) => {
+	value = wordToNum(value);
+
+	if (oldUnit === newUnit) {
+		return value;
+	} else {
+		return (value * timeUnits[oldUnit]) / timeUnits[newUnit];
+	}
+};
+
+const convertScientific1 = (value, oldUnit, newUnit) => {
+	return mathJs[scientificUnits1[newUnit]](value);
+};
+
+const convertScientific2 = (value, oldUnit, newUnit) => {
+	console.log('aa', value, oldUnit, newUnit);
+	return mathJs[scientificUnits2[oldUnit]](value, newUnit);
+};
 module.exports = {
 	convert,
 	lengthUnits,
 	weightUnits,
 	temperatureUnits,
-	currencyUnits
+	currencyUnits,
+	numberUnits,
+	timeUnits,
+	scientificUnits1,
+	scientificUnits2
 };
