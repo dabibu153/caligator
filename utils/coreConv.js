@@ -130,6 +130,8 @@ const timeUnits = {
 	years: 31536000
 };
 
+const dateUnits = ['yesterday', 'today', 'tomorrow'];
+
 const currencyUnits = config.has('rates') ? config.get('rates') : defaultRates;
 
 /**
@@ -149,35 +151,27 @@ money.fx.rates = currencyUnits;
 const convert = (mode, value, oldUnit, newUnit) => {
 	switch (mode) {
 		case 'w':
-			console.log('weight');
 			return convertWeight(value, oldUnit, newUnit);
 		case 'l':
-			console.log('length');
 			return convertLength(value, oldUnit, newUnit);
 		case 't':
-			console.log('temp');
 			return convertTemperature(value, oldUnit, newUnit);
 		case 'c':
-			console.log('currency');
 			return convertCurrency(value, oldUnit, newUnit);
 		case 'r':
-			console.log('r');
 			return convertRatio(value, oldUnit, newUnit);
 		case 'p':
-			console.log('p');
 			return convertPercent(value, oldUnit, newUnit);
 		case 'n':
-			console.log('number');
 			return convertNumber(value, oldUnit, newUnit);
 		case 'tm':
-			console.log('time');
 			return convertTime(value, oldUnit, newUnit);
 		case 's2':
-			console.log('scientific2');
 			return convertScientific2(value, oldUnit, newUnit);
 		case 's1':
-			console.log('scientific1');
 			return convertScientific1(value, oldUnit, newUnit);
+		case 'd':
+			return convertDate(value, oldUnit, newUnit);
 	}
 };
 
@@ -279,7 +273,6 @@ const convertCurrency = (value, oldUnit, newUnit) => {
 };
 
 const convertNumber = (value, oldUnit, newUnit) => {
-	console.log(value, oldUnit, newUnit);
 	return parseInt(value, numberUnits[oldUnit])
 		.toString(numberUnits[newUnit])
 		.toUpperCase();
@@ -300,8 +293,76 @@ const convertScientific1 = (value, oldUnit, newUnit) => {
 };
 
 const convertScientific2 = (value, oldUnit, newUnit) => {
-	console.log('aa', value, oldUnit, newUnit);
 	return mathJs[scientificUnits2[oldUnit]](value, newUnit);
+};
+
+const convertDate = (value, oldUnit, newUnit) => {
+	const today = new Date();
+	switch (value) {
+		case 'yesterday':
+			if (oldUnit === '+') {
+				const answer = new Date(
+					today.setDate(today.getDate() + (Number(newUnit) - 1))
+				);
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			} else if (oldUnit === '-') {
+				const answer = new Date(
+					today.setDate(today.getDate() - (Number(newUnit) + 1))
+				);
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			}
+		case 'today':
+			if (oldUnit === '+') {
+				const answer = new Date(
+					today.setDate(today.getDate() + Number(newUnit))
+				);
+
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			} else if (oldUnit === '-') {
+				const answer = new Date(
+					today.setDate(today.getDate() - Number(newUnit))
+				);
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			}
+		case 'tomorrow':
+			if (oldUnit === '+') {
+				const answer = new Date(
+					today.setDate(today.getDate() + (Number(newUnit) + 1))
+				);
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			} else if (oldUnit === '-') {
+				const answer = new Date(
+					today.setDate(today.getDate() - (Number(newUnit) - 1))
+				);
+				return answer
+					.toString()
+					.split(' ')
+					.slice(0, 4)
+					.join(' ');
+			}
+		default:
+			break;
+	}
 };
 module.exports = {
 	convert,
@@ -312,5 +373,6 @@ module.exports = {
 	numberUnits,
 	timeUnits,
 	scientificUnits1,
-	scientificUnits2
+	scientificUnits2,
+	dateUnits
 };

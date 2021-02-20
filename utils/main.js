@@ -37,6 +37,8 @@ const scientificUnits1 = Object.keys(coreConv.scientificUnits1).join('|');
 
 const scientificUnits2 = Object.keys(coreConv.scientificUnits2).join('|');
 
+const dateUnits = coreConv.dateUnits.join('|');
+
 /** @const {object} */
 const commentRegExp = new RegExp(/^(\s*)#+(.*)/, 'm');
 
@@ -47,6 +49,8 @@ const commentRegExp = new RegExp(/^(\s*)#+(.*)/, 'm');
  * @private
  * @returns {object}
  */
+const generateRegExpFordate = units =>
+	new RegExp(`^(${units})\\s+([-|+])\\s+\\d+`, 'm');
 
 const generateRegExpForMaths1 = units =>
 	new RegExp(`^(${units})\\s+([-|+])?\\d+(.\\d+)?`, 'm');
@@ -87,7 +91,8 @@ const timeRegExp2 = generateRegExpForUnits2(timeUnits);
 
 const scientificRegExp1 = generateRegExpForMaths1(scientificUnits1);
 const scientificRegExp2 = generateRegExpForMaths2(scientificUnits2);
-console.log(scientificRegExp2);
+
+const dateRegExp = generateRegExpFordate(dateUnits);
 
 /**
  * This function filters the given value with
@@ -131,16 +136,9 @@ const parseExp = (inp, type, unit) => {
 
 const parseExp2 = (inp, type, unit) => {
 	inp = inp.split(' ').filter(v => filterValues(v));
-	console.log(inp);
+
 	const value = inp.slice(1, inp.length - 1).join(' ');
-	console.log(
-		'value',
-		value,
-		'oldUnit',
-		inp[0],
-		'newUnit',
-		inp[inp.length - 1]
-	);
+
 	const result = coreConv.convert(unit, value, inp[inp.length - 1], inp[0]);
 	return result;
 };
@@ -153,13 +151,20 @@ const parsescientific1 = (inp, type, unit) => {
 
 const parsescientific2 = (inp, type, unit) => {
 	inp = inp.split(' ').filter(v => filterValues(v));
-	console.log('input for scientific2', inp);
+
 	const result = coreConv.convert(
 		unit,
 		inp[inp.length - 2],
 		inp[0],
 		inp[inp.length - 1]
 	);
+	return result;
+};
+
+const parseDate = (inp, type, unit) => {
+	inp = inp.split(' ').filter(v => filterValues(v));
+
+	const result = coreConv.convert(unit, inp[0], inp[1], inp[2]);
 	return result;
 };
 /**
@@ -225,12 +230,14 @@ const evaluate = exp => {
 	}
 
 	if (scientificRegExp2.test(exp.toLowerCase())) {
-		console.log('here 2');
 		return parsescientific2(exp.toLowerCase(), scientificRegExp2, 's2');
 	}
 
 	if (scientificRegExp1.test(exp.toLowerCase())) {
 		return parsescientific1(exp.toLowerCase(), scientificRegExp1, 's1');
+	}
+	if (dateRegExp.test(exp.toLowerCase())) {
+		return parseDate(exp.toLowerCase(), dateRegExp, 'd');
 	}
 
 	return mathJs.evaluate(exp);

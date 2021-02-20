@@ -3,6 +3,7 @@
 const { remote } = require('electron');
 const main = require('../utils/main');
 const copy = require('copy-to-clipboard');
+const { number } = require('mathjs');
 // By default OS theme
 // user theme has high precedence
 // os theme and user theme applied then USer theme
@@ -241,11 +242,12 @@ inputContainer.addEventListener('keyup', e => {
 // FIXME : Output position for multiline input
 function evaluate(arr) {
 	const output = arr.map(each => main(each));
+
 	outputContainer.innerText = '';
 	let displayTotal = 0;
 	output.forEach(value => {
 		const result = document.createElement('p');
-		result.className = '__output';
+
 		if (
 			Number(parseFloat(value)) === parseFloat(value) &&
 			parseFloat(value) % 1 !== 0
@@ -255,15 +257,20 @@ function evaluate(arr) {
 				window.localStorage.decimalPoint
 			);
 		} else {
-			result.innerText += value;
+			result.innerText = value;
 		}
 		result.addEventListener('click', function() {
 			copyClicked(this);
 		});
 
-		outputContainer.append(result);
-		displayTotal += value;
-		totalContainer.innerText = `${displayTotal}`;
+		if (typeof value === 'number') {
+			outputContainer.append(result);
+			displayTotal += value;
+			totalContainer.innerText = `${displayTotal}`;
+		} else {
+			outputContainer.append(result);
+			totalContainer.innerText = `${displayTotal}`;
+		}
 	});
 }
 
